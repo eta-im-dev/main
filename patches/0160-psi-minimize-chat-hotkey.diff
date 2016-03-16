@@ -1,0 +1,104 @@
+--- psi.orig/options/default.xml
++++ psi/options/default.xml
+@@ -601,6 +601,7 @@ QLineEdit#le_status_text {
+ 				<show-messageFirst type="QKeySequence" comment="Show first message" >Alt+End</show-messageFirst>
+ 				<show-messageNext type="QKeySequence" comment="Show next message" >Ctrl+Down</show-messageNext>
+ 				<show-messagePrev type="QKeySequence" comment="Show prev message" >Ctrl+Up</show-messagePrev>
++				<minimize type="QKeySequence" comment="Minimize active chat window"/>
+ 			</chat>
+ 			<contactlist comment="Shortcuts in the contactlist">
+ 				<assign-custom-avatar type="QKeySequence" comment="Assign a custom avatar to the selected contact"/>
+--- psi.orig/src/groupchatdlg.cpp
++++ psi/src/groupchatdlg.cpp
+@@ -224,6 +224,7 @@ public:
+ //#endif
+ 	QAction *act_send, *act_scrollup, *act_scrolldown, *act_close;
+ 	QAction *act_mini_cmd, *act_nick, *act_hide, *act_copy_muc_jid;
++	QAction *act_minimize;
+ 
+ 	MCmdSimpleSite mCmdSite;
+ 	MCmdManager mCmdManager;
+@@ -786,6 +787,10 @@ GCMainDlg::GCMainDlg(PsiAccount *pa, con
+ 	connect(bm, SIGNAL(conferencesChanged(QList<ConferenceBookmark>)), SLOT(updateBookmarkIcon()));
+ 	connect(bm, SIGNAL(bookmarksSaved()), SLOT(updateBookmarkIcon()));
+ 
++	d->act_minimize = new QAction(this);
++	connect(d->act_minimize, SIGNAL(triggered()), SLOT(doMinimize()));
++	addAction(d->act_minimize);
++
+ 	int s = PsiIconset::instance()->system().iconSize();
+ 	ui_.toolbar->setIconSize(QSize(s,s));
+ 
+@@ -896,6 +901,11 @@ void GCMainDlg::horizSplitterMoved()
+ 	PsiOptions::instance()->setOption("options.ui.muc.roster-width", d->rosterSize);
+ }
+ 
++void GCMainDlg::doMinimize()
++{
++	window()->showMinimized();
++}
++
+ void GCMainDlg::ensureTabbedCorrectly()
+ {
+ 	TabbableWidget::ensureTabbedCorrectly();
+@@ -939,6 +949,7 @@ void GCMainDlg::setShortcuts()
+ 	d->act_scrollup->setShortcuts(ShortcutManager::instance()->shortcuts("common.scroll-up"));
+ 	d->act_scrolldown->setShortcuts(ShortcutManager::instance()->shortcuts("common.scroll-down"));
+ 	d->act_mini_cmd->setShortcuts(ShortcutManager::instance()->shortcuts("chat.quick-command"));
++	d->act_minimize->setShortcuts(ShortcutManager::instance()->shortcuts("chat.minimize"));
+ }
+ 
+ void GCMainDlg::scrollUp()
+--- psi.orig/src/groupchatdlg.h
++++ psi/src/groupchatdlg.h
+@@ -141,6 +141,7 @@ private slots:
+ #endif
+ 	void chatEditCreated();
+ 	void horizSplitterMoved();
++	void doMinimize();
+ 	void avatarUpdated(const Jid& jid);
+ 
+ public:
+--- psi.orig/src/psichatdlg.cpp
++++ psi/src/psichatdlg.cpp
+@@ -349,6 +349,11 @@ void PsiChatDlg::setShortcuts()
+ 
+ 	act_mini_cmd_->setShortcuts(ShortcutManager::instance()->shortcuts("chat.quick-command"));
+ 
++	act_minimize_ = new QAction(this);
++
++	connect(act_minimize_, SIGNAL(triggered()), SLOT(doMinimize()));
++	addAction(act_minimize_);
++	act_minimize_->setShortcuts(ShortcutManager::instance()->shortcuts("chat.minimize"));
+ }
+ 
+ void PsiChatDlg::updateIdentityVisibility()
+@@ -884,6 +889,10 @@ void PsiChatDlg::chatEditCreated()
+ 	tabCompletion.setTextEdit(chatEdit());
+ }
+ 
++void PsiChatDlg::doMinimize()
++{
++	window()->showMinimized();
++}
+ 
+ void PsiChatDlg::doSend() {
+ 	tabCompletion.reset();
+--- psi.orig/src/psichatdlg.h
++++ psi/src/psichatdlg.h
+@@ -36,6 +36,7 @@ private slots:
+ 	void toggleSmallChat();
+ 	void doClearButton();
+ 	void doMiniCmd();
++	void doMinimize();
+ 	void addContact();
+ 	void buildMenu();
+ 	void updateCounter();
+@@ -85,6 +86,7 @@ private:
+ 
+ 	ActionList* actions_;
+ 	QAction *act_mini_cmd_;
++	QAction *act_minimize_;
+ 	TypeAheadFindBar *typeahead_;
+ 
+ 	ActionLineEdit *le_autojid;
